@@ -48,10 +48,6 @@
 //!
 //! No
 
-#![deny(missing_docs)]
-#![deny(warnings)]
-#![allow(clippy::pedantic)]
-
 mod authentication_manager;
 mod custom_service_account;
 mod default_authorized_user;
@@ -62,43 +58,33 @@ mod types;
 mod util;
 mod prelude {
     pub(crate) use {
-        crate::error::Error, crate::types::HyperClient, crate::types::Token, crate::util::HyperExt,
-        async_trait::async_trait, hyper::Request, serde::Deserialize, serde::Serialize,
-        std::collections::HashMap, std::path::Path,
+        crate::error::Error, crate::types::Token, crate::util::SurfExt, async_trait::async_trait,
+        serde::Deserialize, serde::Serialize, std::collections::HashMap,
     };
 }
 pub use authentication_manager::AuthenticationManager;
 pub use error::Error;
 pub use types::Token;
 
-use hyper::Client;
-use hyper_rustls::HttpsConnector;
-
 /// Initialize GCP authentication
 ///
 /// Returns `AuthenticationManager` which can be used to obtain tokens
 pub async fn init() -> Result<AuthenticationManager, Error> {
-    let https = HttpsConnector::new();
-    let client = Client::builder().build::<_, hyper::Body>(https);
-
     let custom = custom_service_account::CustomServiceAccount::new().await;
     if let Ok(service_account) = custom {
         return Ok(AuthenticationManager {
-            client,
             service_account: Box::new(service_account),
         });
     }
-    let default = default_service_account::DefaultServiceAccount::new(&client).await;
+    let default = default_service_account::DefaultServiceAccount::new().await;
     if let Ok(service_account) = default {
         return Ok(AuthenticationManager {
-            client: client.clone(),
             service_account: Box::new(service_account),
         });
     }
-    let user = default_authorized_user::DefaultAuthorizedUser::new(&client).await;
+    let user = default_authorized_user::DefaultAuthorizedUser::new().await;
     if let Ok(user_account) = user {
         return Ok(AuthenticationManager {
-            client,
             service_account: Box::new(user_account),
         });
     }

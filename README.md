@@ -1,3 +1,5 @@
+This fork is an async-std version of [hrvolapeter/gcp_auth](https://github.com/hrvolapeter/gcp_auth).
+
 # GCP Auth
 [![Crates.io][crates-badge]][crates-url]
 [![Documentation][docs-badge]][docs-url]
@@ -19,7 +21,7 @@ The library looks for authentication methods in the following order:
 
 1. Path to service account JSON configuration file using GOOGLE_APPLICATION_CREDENTIALS
 environment variable. The service account configuration file can be downloaded in the
-IAM service when displaying service account detail. The downloaded JSON file should 
+IAM service when displaying service account detail. The downloaded JSON file should
 be provided without any further modification.
 2. Invoking the library inside GCP environment fetches the default service account
 for the service and he application is authenticated using that particular account

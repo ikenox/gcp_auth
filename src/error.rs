@@ -1,4 +1,6 @@
+use surf::http;
 use thiserror::Error;
+
 /// Enumerates all possible errors returned by this library.
 #[derive(Error, Debug)]
 pub enum Error {
@@ -21,7 +23,7 @@ pub enum Error {
 
     /// Error when establishing connection to OAuth server
     #[error("Could not establish connection with OAuth server")]
-    OAuthConnectionError(hyper::error::Error),
+    OAuthConnectionError(http::Error),
 
     /// Error when parsin response from OAuth server
     #[error("Could not parse OAuth server reponse")]
@@ -60,11 +62,11 @@ pub enum Error {
 
     /// Could not connect to  server
     #[error("Could not establish connection with server")]
-    ConnectionError(hyper::error::Error),
+    ConnectionError(surf::Error),
 
     /// Could not parse response from server
     #[error("Could not parse server reponse")]
-    ParsingError(serde_json::error::Error),
+    ParsingError(surf::Error),
 
     /// Could not connect to server
     #[error("Server unavailable")]

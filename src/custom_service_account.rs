@@ -1,7 +1,7 @@
 use crate::authentication_manager::ServiceAccount;
 use crate::prelude::*;
+use crate::{Error, Token};
 use std::sync::RwLock;
-use tokio::fs;
 
 #[derive(Debug)]
 pub struct CustomServiceAccount {
@@ -25,7 +25,7 @@ impl CustomServiceAccount {
 
 #[async_trait]
 impl ServiceAccount for CustomServiceAccount {
-    async fn project_id(&self, _: &HyperClient) -> Result<String, Error> {
+    async fn project_id(&self) -> Result<String, Error> {
         match &self.credentials.project_id {
             Some(pid) => Ok(pid.clone()),
             None => Err(Error::ProjectIdNotFound),
@@ -37,11 +37,10 @@ impl ServiceAccount for CustomServiceAccount {
         self.tokens.read().unwrap().get(&key).cloned()
     }
 
-    async fn refresh_token(&self, client: &HyperClient, scopes: &[&str]) -> Result<Token, Error> {
+    async fn refresh_token(&self, scopes: &[&str]) -> Result<Token, Error> {
         use crate::jwt::Claims;
         use crate::jwt::JWTSigner;
         use crate::jwt::GRANT_TYPE;
-        use hyper::header;
         use url::form_urlencoded;
 
         let signer = JWTSigner::new(&self.credentials.private_key)?;
@@ -51,13 +50,11 @@ impl ServiceAccount for CustomServiceAccount {
         let rqbody = form_urlencoded::Serializer::new(String::new())
             .extend_pairs(&[("grant_type", GRANT_TYPE), ("assertion", signed.as_str())])
             .finish();
-        let request = hyper::Request::post(&self.credentials.token_uri)
-            .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded")
-            .body(hyper::Body::from(rqbody))
-            .unwrap();
-        log::debug!("requesting token from service account: {:?}", request);
-        let token = client
-            .request(request)
+        let req = surf::post(&self.credentials.token_uri)
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .body(surf::Body::from_string(rqbody));
+        log::debug!("requesting token from service account: {:?}", req);
+        let token = req
             .await
             .map_err(Error::OAuthConnectionError)?
             .deserialize::<Token>()
@@ -67,6 +64,8 @@ impl ServiceAccount for CustomServiceAccount {
         Ok(token)
     }
 }
+
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ApplicationCredentials {
@@ -92,8 +91,10 @@ pub struct ApplicationCredentials {
 }
 
 impl ApplicationCredentials {
-    async fn from_file<T: AsRef<Path>>(path: T) -> Result<ApplicationCredentials, Error> {
-        let content = fs::read_to_string(path)
+    async fn from_file<T: AsRef<async_std::path::Path>>(
+        path: T,
+    ) -> Result<ApplicationCredentials, Error> {
+        let content = async_std::fs::read_to_string(path)
             .await
             .map_err(Error::AplicationProfilePath)?;
         Ok(serde_json::from_str(&content).map_err(Error::AplicationProfileFormat)?)

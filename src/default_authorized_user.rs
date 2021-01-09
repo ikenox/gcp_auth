@@ -1,9 +1,7 @@
 use crate::authentication_manager::ServiceAccount;
 use crate::prelude::*;
-use hyper::body::Body;
-use hyper::Method;
 use std::sync::RwLock;
-use tokio::fs;
+use surf::RequestBuilder;
 
 #[derive(Debug)]
 pub struct DefaultAuthorizedUser {
@@ -15,21 +13,18 @@ impl DefaultAuthorizedUser {
     const USER_CREDENTIALS_PATH: &'static str =
         "/.config/gcloud/application_default_credentials.json";
 
-    pub async fn new(client: &HyperClient) -> Result<Self, Error> {
-        let token = RwLock::new(Self::get_token(client).await?);
+    pub async fn new() -> Result<Self, Error> {
+        let token = RwLock::new(Self::get_token().await?);
         Ok(Self { token })
     }
 
-    fn build_token_request<T: serde::Serialize>(json: &T) -> Request<Body> {
-        Request::builder()
-            .method(Method::POST)
-            .uri(Self::DEFAULT_TOKEN_GCP_URI)
+    fn build_token_request<T: serde::Serialize>(json: &T) -> RequestBuilder {
+        surf::post(Self::DEFAULT_TOKEN_GCP_URI)
             .header("content-type", "application/json")
-            .body(Body::from(serde_json::to_string(json).unwrap()))
-            .unwrap()
+            .body(surf::Body::from_json(json).unwrap())
     }
 
-    async fn get_token(client: &HyperClient) -> Result<Token, Error> {
+    async fn get_token() -> Result<Token, Error> {
         log::debug!("Loading user credentials file");
         let home = dirs_next::home_dir().ok_or(Error::NoHomeDir)?;
         let cred =
@@ -41,8 +36,7 @@ impl DefaultAuthorizedUser {
             grant_type: "refresh_token".to_string(),
             refresh_token: cred.refresh_token,
         });
-        let token = client
-            .request(req)
+        let token = req
             .await
             .map_err(Error::OAuthConnectionError)?
             .deserialize()
@@ -53,7 +47,7 @@ impl DefaultAuthorizedUser {
 
 #[async_trait]
 impl ServiceAccount for DefaultAuthorizedUser {
-    async fn project_id(&self, _: &HyperClient) -> Result<String, Error> {
+    async fn project_id(&self) -> Result<String, Error> {
         Err(Error::NoProjectId)
     }
 
@@ -61,8 +55,8 @@ impl ServiceAccount for DefaultAuthorizedUser {
         Some(self.token.read().unwrap().clone())
     }
 
-    async fn refresh_token(&self, client: &HyperClient, _scopes: &[&str]) -> Result<Token, Error> {
-        let token = Self::get_token(client).await?;
+    async fn refresh_token(&self, _scopes: &[&str]) -> Result<Token, Error> {
+        let token = Self::get_token().await?;
         *self.token.write().unwrap() = token.clone();
         Ok(token)
     }
@@ -89,8 +83,8 @@ struct UserCredentials {
 }
 
 impl UserCredentials {
-    async fn from_file<T: AsRef<Path>>(path: T) -> Result<UserCredentials, Error> {
-        let content = fs::read_to_string(path)
+    async fn from_file<T: AsRef<async_std::path::Path>>(path: T) -> Result<UserCredentials, Error> {
+        let content = async_std::fs::read_to_string(path)
             .await
             .map_err(Error::UserProfilePath)?;
         Ok(serde_json::from_str(&content).map_err(Error::UserProfileFormat)?)

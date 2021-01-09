@@ -40,5 +40,3 @@ where
     let s = s.map(|seconds_from_now| Utc::now() + chrono::Duration::seconds(seconds_from_now));
     Ok(s)
 }
-
-pub type HyperClient = hyper::Client<hyper_rustls::HttpsConnector<hyper::client::HttpConnector>>;
