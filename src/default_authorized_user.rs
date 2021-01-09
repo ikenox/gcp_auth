@@ -25,20 +25,21 @@ impl DefaultAuthorizedUser {
     }
 
     async fn get_token() -> Result<Token, Error> {
-        log::debug!("Loading user credentials file");
+        log::debug!("loading user credentials file");
         let home = dirs_next::home_dir().ok_or(Error::NoHomeDir)?;
-        let cred =
-            UserCredentials::from_file(home.display().to_string() + Self::USER_CREDENTIALS_PATH)
-                .await?;
+        let path = home.display().to_string() + Self::USER_CREDENTIALS_PATH;
+        log::debug!("filepath: {}", path);
+        let cred = UserCredentials::from_file(path).await?;
         let req = Self::build_token_request(&RerfeshRequest {
             client_id: cred.client_id,
             client_secret: cred.client_secret,
             grant_type: "refresh_token".to_string(),
             refresh_token: cred.refresh_token,
         });
-        let token = req
-            .await
-            .map_err(Error::OAuthConnectionError)?
+        log::debug!("request: {:?}", req);
+        let response = req.await.map_err(Error::OAuthConnectionError)?;
+        log::debug!("response: {:?}", response);
+        let token =response
             .deserialize()
             .await?;
         Ok(token)
