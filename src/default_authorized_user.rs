@@ -37,11 +37,10 @@ impl DefaultAuthorizedUser {
             refresh_token: cred.refresh_token,
         });
         log::debug!("request: {:?}", req);
-        let response = req.await.map_err(Error::OAuthConnectionError)?;
-        log::debug!("response: {:?}", response);
-        let token =response
-            .deserialize()
-            .await?;
+        let mut response = req.await.map_err(Error::OAuthConnectionError)?;
+        let body = response.body_string().await.map_err(Error::ParsingError)?;
+        log::debug!("response body: {:?}", body);
+        let token = serde_json::from_str(&body).map_err(Error::OAuthParsingError)?;
         Ok(token)
     }
 }
