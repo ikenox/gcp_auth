@@ -64,6 +64,7 @@ mod prelude {
 }
 pub use authentication_manager::AuthenticationManager;
 pub use error::Error;
+use log::*;
 pub use types::Token;
 
 /// Initialize GCP authentication
@@ -87,6 +88,11 @@ pub async fn init() -> Result<AuthenticationManager, Error> {
         return Ok(AuthenticationManager {
             service_account: Box::new(user_account),
         });
+    } else {
+        error!(
+            "failed to obtain default authorized user: {:?}",
+            user.as_ref().unwrap_err()
+        );
     }
     Err(Error::NoAuthMethod(
         Box::new(custom.unwrap_err()),
