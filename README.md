@@ -1,4 +1,4 @@
-This fork is an async-std version of [hrvolapeter/gcp_auth](https://github.com/hrvolapeter/gcp_auth).
+This fork replaces from tokio and hyper into isahc in order to achieve async-runtime-agnostic.
 
 # GCP Auth
 [![Crates.io][crates-badge]][crates-url]
