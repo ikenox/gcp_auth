@@ -24,3 +24,9 @@ async-trait = "0.1.42"
 thiserror = "1.0"
 dirs-next = "2.0"
 surf = "2.1.0"
+
+[dev-dependencies]
+env_logger = "0.7.1"
+
+[[example]]         # <--- declare the executable
+name = "test"
