@@ -23,7 +23,7 @@ async-std = "1.8.0"
 async-trait = "0.1.42"
 thiserror = "1.0"
 dirs-next = "2.0"
-surf = "2.1.0"
+isahc = "1.0.2"
 
 [dev-dependencies]
 env_logger = "0.7.1"

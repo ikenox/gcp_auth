@@ -50,13 +50,15 @@ impl ServiceAccount for CustomServiceAccount {
         let rqbody = form_urlencoded::Serializer::new(String::new())
             .extend_pairs(&[("grant_type", GRANT_TYPE), ("assertion", signed.as_str())])
             .finish();
-        let req = surf::post(&self.credentials.token_uri)
+        let req = Request::post(&self.credentials.token_uri)
             .header("Content-Type", "application/x-www-form-urlencoded")
-            .body(surf::Body::from_string(rqbody));
+            .body(rqbody)
+            .map_err(Error::OAuthConnectionError)?;
         log::debug!("requesting token from service account: {:?}", req);
         let token = req
+            .send_async()
             .await
-            .map_err(Error::OAuthConnectionError)?
+            .map_err(Error::ConnectionError)?
             .deserialize::<Token>()
             .await?;
         let key = scopes.iter().map(|x| (*x).to_string()).collect();
@@ -65,6 +67,7 @@ impl ServiceAccount for CustomServiceAccount {
     }
 }
 
+use isahc::{Request, RequestExt};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

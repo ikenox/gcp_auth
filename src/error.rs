@@ -1,4 +1,4 @@
-use surf::http;
+use isahc::http;
 use thiserror::Error;
 
 /// Enumerates all possible errors returned by this library.
@@ -62,11 +62,11 @@ pub enum Error {
 
     /// Could not connect to  server
     #[error("Could not establish connection with server")]
-    ConnectionError(surf::Error),
+    ConnectionError(isahc::Error),
 
     /// Could not parse response from server
     #[error("Could not parse server reponse")]
-    ParsingError(surf::Error),
+    ParsingError(isahc::Error),
 
     /// Could not connect to server
     #[error("Server unavailable")]

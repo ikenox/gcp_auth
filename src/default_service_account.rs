@@ -1,8 +1,10 @@
+use isahc::http;
+
 use crate::authentication_manager::ServiceAccount;
 use crate::prelude::*;
+use isahc::{prelude::*, Request};
 use std::str;
 use std::sync::RwLock;
-use surf::RequestBuilder;
 
 #[derive(Debug)]
 pub struct DefaultServiceAccount {
@@ -19,14 +21,17 @@ impl DefaultServiceAccount {
         Ok(Self { token })
     }
 
-    fn build_token_request(uri: &str) -> RequestBuilder {
-        surf::get(uri).header("Metadata-Flavor", "Google")
+    fn build_token_request(uri: &str) -> isahc::http::request::Builder {
+        isahc::Request::get(uri).header("Metadata-Flavor", "Google")
     }
 
     async fn get_token() -> Result<Token, Error> {
         log::debug!("Getting token from GCP instance metadata server");
         let req = Self::build_token_request(Self::DEFAULT_TOKEN_GCP_URI);
         let token = req
+            .body(())
+            .map_err(Error::OAuthConnectionError)?
+            .send_async()
             .await
             .map_err(Error::ConnectionError)?
             .deserialize()
@@ -40,9 +45,14 @@ impl ServiceAccount for DefaultServiceAccount {
     async fn project_id(&self) -> Result<String, Error> {
         log::debug!("Getting project ID from GCP instance metadata server");
         let req = Self::build_token_request(Self::DEFAULT_PROJECT_ID_GCP_URI);
-        let mut rsp = req.await.map_err(Error::ConnectionError)?;
+        let mut rsp = req
+            .body(())
+            .map_err(Error::OAuthConnectionError)?
+            .send_async()
+            .await
+            .map_err(Error::ConnectionError)?;
 
-        match rsp.body_string().await {
+        match rsp.text().await {
             Ok(s) => Ok(s),
             Err(_) => Err(Error::ProjectIdNonUtf8),
         }
