@@ -1,4 +1,4 @@
-This fork replaces from tokio to async-std.
+This fork uses async-std instead of tokio.
 
 # GCP Auth
 [![Crates.io][crates-badge]][crates-url]
