@@ -1,4 +1,4 @@
-This fork replaces from tokio and hyper into isahc in order to achieve async-runtime-agnostic.
+This fork replaces from tokio to async-std.
 
 # GCP Auth
 [![Crates.io][crates-badge]][crates-url]
