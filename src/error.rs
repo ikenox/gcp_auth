@@ -1,4 +1,3 @@
-use isahc::http;
 use thiserror::Error;
 
 /// Enumerates all possible errors returned by this library.
@@ -23,11 +22,11 @@ pub enum Error {
 
     /// Error when establishing connection to OAuth server
     #[error("Could not establish connection with OAuth server")]
-    OAuthConnectionError(http::Error),
+    OAuthConnectionError(surf::Error),
 
     /// Error when parsin response from OAuth server
     #[error("Could not parse OAuth server reponse")]
-    OAuthParsingError(serde_json::error::Error),
+    OAuthParsingError(surf::Error),
 
     /// Variable `GOOGLE_APPLICATION_CREDENTIALS` could not be found in the current environment
     ///
@@ -62,11 +61,11 @@ pub enum Error {
 
     /// Could not connect to  server
     #[error("Could not establish connection with server")]
-    ConnectionError(isahc::Error),
+    ConnectionError(surf::Error),
 
     /// Could not parse response from server
     #[error("Could not parse server reponse")]
-    ParsingError(isahc::Error),
+    ParsingError(surf::Error),
 
     /// Could not connect to server
     #[error("Server unavailable")]

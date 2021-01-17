@@ -1,10 +1,10 @@
-use isahc::http;
 
 use crate::authentication_manager::ServiceAccount;
 use crate::prelude::*;
-use isahc::{prelude::*, Request};
 use std::str;
 use std::sync::RwLock;
+use surf::RequestBuilder;
+use surf::http::Method;
 
 #[derive(Debug)]
 pub struct DefaultServiceAccount {
@@ -21,21 +21,20 @@ impl DefaultServiceAccount {
         Ok(Self { token })
     }
 
-    fn build_token_request(uri: &str) -> isahc::http::request::Builder {
-        isahc::Request::get(uri).header("Metadata-Flavor", "Google")
+    fn build_token_request(uri: &str) -> RequestBuilder {
+        RequestBuilder::new(Method::Get, surf::Url::parse(uri).unwrap()).header("Metadata-Flavor", "Google")
     }
 
     async fn get_token() -> Result<Token, Error> {
         log::debug!("Getting token from GCP instance metadata server");
-        let req = Self::build_token_request(Self::DEFAULT_TOKEN_GCP_URI);
-        let token = req
-            .body(())
-            .map_err(Error::OAuthConnectionError)?
-            .send_async()
+        let req = Self::build_token_request(Self::DEFAULT_TOKEN_GCP_URI)
+            .build();
+        let token = surf::client().send(req)
             .await
-            .map_err(Error::ConnectionError)?
-            .deserialize()
-            .await?;
+            .map_err(Error::OAuthConnectionError)?
+            .body_json()
+            .await
+            .map_err(Error::OAuthParsingError)?;
         Ok(token)
     }
 }
@@ -44,18 +43,12 @@ impl DefaultServiceAccount {
 impl ServiceAccount for DefaultServiceAccount {
     async fn project_id(&self) -> Result<String, Error> {
         log::debug!("Getting project ID from GCP instance metadata server");
-        let req = Self::build_token_request(Self::DEFAULT_PROJECT_ID_GCP_URI);
-        let mut rsp = req
-            .body(())
-            .map_err(Error::OAuthConnectionError)?
-            .send_async()
+        Self::build_token_request(Self::DEFAULT_PROJECT_ID_GCP_URI)
             .await
-            .map_err(Error::ConnectionError)?;
-
-        match rsp.text().await {
-            Ok(s) => Ok(s),
-            Err(_) => Err(Error::ProjectIdNonUtf8),
-        }
+            .map_err(Error::OAuthConnectionError)?
+            .body_string()
+            .await
+            .map_err(Error::OAuthParsingError)
     }
 
     fn get_token(&self, _scopes: &[&str]) -> Option<Token> {

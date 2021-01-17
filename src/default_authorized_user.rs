@@ -1,8 +1,8 @@
-use isahc::{http::request::Builder, AsyncReadResponseExt, Request, RequestExt};
-
 use crate::authentication_manager::ServiceAccount;
 use crate::prelude::*;
 use std::sync::RwLock;
+use surf::http::Method;
+use surf::Request;
 
 #[derive(Debug)]
 pub struct DefaultAuthorizedUser {
@@ -19,11 +19,14 @@ impl DefaultAuthorizedUser {
         Ok(Self { token })
     }
 
-    fn build_token_request<T: serde::Serialize>(json: &T) -> Request<String> {
-        Request::post(Self::DEFAULT_TOKEN_GCP_URI)
-            .header("Content-Type", "application/json")
-            .body(serde_json::to_string(json).unwrap())
-            .unwrap()
+    fn build_token_request<T: serde::Serialize>(json: &T) -> Request {
+        surf::RequestBuilder::new(
+            Method::Post,
+            surf::Url::parse(Self::DEFAULT_TOKEN_GCP_URI).unwrap(),
+        )
+        .header("Content-Type", "application/json")
+        .body(serde_json::to_string(json).unwrap())
+        .build()
     }
 
     async fn get_token() -> Result<Token, Error> {
@@ -39,11 +42,13 @@ impl DefaultAuthorizedUser {
             refresh_token: cred.refresh_token,
         });
         log::debug!("request: {:?}", req);
-        let mut response = req.send_async().await.map_err(Error::ConnectionError)?;
-        let body = response.text().await.map_err(Error::IOError)?;
-        log::debug!("response body: {:?}", body);
-        let token = serde_json::from_str(&body).map_err(Error::OAuthParsingError)?;
-        Ok(token)
+        surf::client()
+            .send(req)
+            .await
+            .map_err(Error::ConnectionError)?
+            .body_json()
+            .await
+            .map_err(Error::OAuthParsingError)
     }
 }
 

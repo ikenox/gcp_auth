@@ -1,6 +1,6 @@
 use crate::prelude::*;
-use isahc::{AsyncBody, AsyncReadResponseExt, Response};
 use serde::de;
+use surf::Response;
 
 #[async_trait]
 pub trait SurfExt {
@@ -10,7 +10,7 @@ pub trait SurfExt {
 }
 
 #[async_trait]
-impl SurfExt for Response<AsyncBody> {
+impl SurfExt for Response {
     async fn deserialize<T>(mut self) -> Result<T, Error>
     where
         T: de::DeserializeOwned,
@@ -19,7 +19,6 @@ impl SurfExt for Response<AsyncBody> {
             log::error!("Server responded with error");
             return Err(Error::ServerUnavailable);
         }
-        let body = self.text().await.map_err(Error::IOError)?;
-        serde_json::from_str(&body).map_err(Error::OAuthParsingError)
+        self.body_json().await.map_err(Error::OAuthParsingError)
     }
 }

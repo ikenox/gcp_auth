@@ -59,7 +59,7 @@ mod util;
 mod prelude {
     pub(crate) use {
         crate::error::Error, crate::types::Token, crate::util::SurfExt, async_trait::async_trait,
-        serde::Deserialize, serde::Serialize, std::collections::HashMap,
+        serde::Deserialize, serde::Serialize, std::collections::HashMap
     };
 }
 pub use authentication_manager::AuthenticationManager;
