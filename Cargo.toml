@@ -23,7 +23,7 @@ async-std = "1.8.0"
 async-trait = "0.1.42"
 thiserror = "1.0"
 dirs-next = "2.0"
-surf = { git = "https://github.com/JEnoch/surf.git", features=["h1-client-rustls"], rev = "32af480", default-features = false}
+surf = { git = "https://github.com/JEnoch/surf.git", features=["h1-client-rustls"], rev = "23bf20f", default-features = false}
 
 [dev-dependencies]
 env_logger = "0.7.1"
